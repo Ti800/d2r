@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       prepared_input:
-        description: iOS prepared package JSON (url and sha256; see README)
+        description: iOS prepared package JSON (see README)
         type: string
         required: true
       source_repository:
@@ -27,3 +27,60 @@ jobs:
       source_ref: ${{ inputs.source_ref }}
     secrets:
       SOURCE_TOKEN: ${{ secrets.SOURCE_TOKEN }}
+  # zsign (used by Feather and similar on-device signers) only finds load-command
+  # space through __TEXT,__text. Guest has no such section, so signing fails and
+  # the IPA installs unsigned (0xe800801c). An ad-hoc signature gives Guest an
+  # LC_CODE_SIGNATURE that every signer can replace in place.
+  presign-guest:
+    needs: build
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN_NUMBER: ${{ github.run_number }}
+    steps:
+      - name: Find this run's release
+        id: release
+        run: |
+          tag=$(gh release list -R "$GITHUB_REPOSITORY" --limit 30 --json tagName \
+            --jq ".[].tagName | select(test(\"-build\\\\.${RUN_NUMBER}\\\\.[0-9]+$\"))" | head -1)
+          [ -n "$tag" ] || { echo "::error::No release for run $RUN_NUMBER"; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Pre-sign Guest.framework
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir release && cd release
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p '*.ipa' -p SHA256SUMS.txt -p build-report.json
+          changed=()
+          for ipa in *.ipa; do
+            work="../work/$ipa"; mkdir -p "$work"; unzip -q "$ipa" -d "$work"
+            guest="$work/Payload/DmIOS.app/Frameworks/Guest.framework/Guest"
+            if codesign -d "$guest" >/dev/null 2>&1; then echo "$ipa: Guest already signed"; continue; fi
+            codesign -f -s - "$guest"
+            rm "$ipa"; (cd "$work" && zip -qry -X "$OLDPWD/$ipa" .)
+            changed+=("$ipa")
+          done
+          [ ${#changed[@]} -gt 0 ] || exit 0
+          python3 - "${changed[@]}" <<'PYCODE'
+          import hashlib, json, os, sys
+          info = {}
+          for name in sys.argv[1:]:
+              with open(name, 'rb') as f:
+                  info[name] = (hashlib.sha256(f.read()).hexdigest(), os.path.getsize(name))
+          lines = []
+          for line in open('SHA256SUMS.txt').read().splitlines():
+              digest, name = line.split('  ', 1)
+              lines.append(f'{info[name][0]}  {name}' if name in info else line)
+          open('SHA256SUMS.txt', 'w').write('\n'.join(lines) + '\n')
+          report = json.load(open('build-report.json'))
+          for entry in [report, *report.get('packages', [])]:
+              if entry.get('ipa_name') in info:
+                  entry['ipa_sha256'], entry['ipa_bytes'] = info[entry['ipa_name']]
+          report['guest_adhoc_presigned'] = True
+          json.dump(report, open('build-report.json', 'w'), indent=2, ensure_ascii=False)
+          PYCODE
+          shasum -a 256 -c SHA256SUMS.txt
+          gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber "${changed[@]}" SHA256SUMS.txt build-report.json
