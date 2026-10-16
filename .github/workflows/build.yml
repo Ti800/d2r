@@ -1,12 +1,15 @@
 name: Build IPA
-run-name: Source build · ${{ inputs.source_ref || 'latest release' }}
+run-name: ${{ github.event_name == 'schedule' && 'Scheduled upstream check' || format('Source build · {0}', inputs.source_ref || 'latest release') }}
 on:
+  # Builds only when the upstream latest release has no IPA release here yet.
+  schedule:
+    - cron: '23 */4 * * *'
   workflow_dispatch:
     inputs:
       prepared_input:
-        description: iOS prepared package JSON (see README)
+        description: iOS prepared package JSON (empty uses the PREPARED_INPUT variable)
         type: string
-        required: true
+        default: ''
       source_repository:
         description: Upstream source repository or your fork
         type: string
@@ -19,12 +22,38 @@ permissions:
   contents: write
   actions: write
 jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PREPARED_INPUT: ${{ inputs.prepared_input || vars.PREPARED_INPUT }}
+      SOURCE_REPOSITORY: ${{ inputs.source_repository || 'jhaizhou-ops/d2r-mobile' }}
+    steps:
+      - name: Check for a new upstream release
+        id: check
+        run: |
+          set -euo pipefail
+          [ -n "$PREPARED_INPUT" ] || { echo "::error::Set prepared_input or the PREPARED_INPUT repository variable"; exit 1; }
+          if [ "$GITHUB_EVENT_NAME" != schedule ]; then echo build=true >> "$GITHUB_OUTPUT"; exit 0; fi
+          latest=$(gh release view -R "$SOURCE_REPOSITORY" --json tagName --jq .tagName)
+          built=$(gh release list -R "$GITHUB_REPOSITORY" --limit 100 --json tagName \
+            --jq "[.[].tagName | select(startswith(\"$latest-build.\") and (endswith(\"-macos\") | not))] | length")
+          if [ "$built" -gt 0 ]; then
+            echo "$latest is already built" >> "$GITHUB_STEP_SUMMARY"; echo build=false >> "$GITHUB_OUTPUT"
+          else
+            echo "Building new upstream release $latest" >> "$GITHUB_STEP_SUMMARY"; echo build=true >> "$GITHUB_OUTPUT"
+          fi
   build:
+    needs: check
+    if: ${{ needs.check.outputs.build == 'true' }}
     uses: jiayx/d2r-mobile-build/.github/workflows/pack.yml@main
     with:
-      prepared_input: ${{ inputs.prepared_input }}
-      source_repository: ${{ inputs.source_repository }}
-      source_ref: ${{ inputs.source_ref }}
+      prepared_input: ${{ inputs.prepared_input || vars.PREPARED_INPUT }}
+      source_repository: ${{ inputs.source_repository || 'jhaizhou-ops/d2r-mobile' }}
+      source_ref: ${{ inputs.source_ref || '' }}
     secrets:
       SOURCE_TOKEN: ${{ secrets.SOURCE_TOKEN }}
   # zsign (used by Feather and similar on-device signers) only finds load-command
@@ -84,3 +113,7 @@ jobs:
           PYCODE
           shasum -a 256 -c SHA256SUMS.txt
           gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber "${changed[@]}" SHA256SUMS.txt build-report.json
+  altstore:
+    needs: presign-guest
+    if: ${{ !cancelled() && needs.presign-guest.result == 'success' }}
+    uses: ./.github/workflows/altstore.yml

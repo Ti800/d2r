@@ -1,0 +1,39 @@
+name: AltStore source
+on:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: write
+concurrency:
+  group: altstore-source
+  cancel-in-progress: false
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: altstore
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Generate altstore.json from Releases
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=50" > "$RUNNER_TEMP/own.json"
+          gh api "repos/jhaizhou-ops/d2r-mobile/releases?per_page=30" > "$RUNNER_TEMP/upstream.json"
+          mkdir -p "$RUNNER_TEMP/site"
+          python3 .github/scripts/altstore_source.py "$RUNNER_TEMP/own.json" "$RUNNER_TEMP/upstream.json" \
+            "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$BRANCH/altstore.json" > "$RUNNER_TEMP/site/altstore.json"
+      # A single-commit orphan branch: it keeps main free of generated commits and does not trigger push checks.
+      - name: Publish to the altstore branch
+        working-directory: ${{ runner.temp }}/site
+        run: |
+          set -euo pipefail
+          git init -q -b "$BRANCH"
+          git add altstore.json
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -qm 'Update AltStore source'
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:$BRANCH"
+          echo "Source: https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$BRANCH/altstore.json" >> "$GITHUB_STEP_SUMMARY"
