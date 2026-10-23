@@ -1,0 +1,84 @@
+{
+  "name": "D2R Mobile (Ti800)",
+  "identifier": "io.github.ti800.d2r",
+  "sourceURL": "https://raw.githubusercontent.com/Ti800/d2r/altstore/altstore.json",
+  "iconURL": "https://raw.githubusercontent.com/jhaizhou-ops/d2r-mobile/main/dm/ios/Assets.xcassets/AppIcon.appiconset/AppIcon1024.png",
+  "apps": [
+    {
+      "name": "D2R Mobile",
+      "bundleIdentifier": "org.d2rmobile.app",
+      "developerName": "jhaizhou-ops",
+      "subtitle": "Diablo II: Resurrected 原生 iOS 移植",
+      "localizedDescription": "从 jhaizhou-ops/d2r-mobile 最新正式版自动构建（iOS 26 及以上）。游戏资源需另行导入。",
+      "iconURL": "https://raw.githubusercontent.com/jhaizhou-ops/d2r-mobile/main/dm/ios/Assets.xcassets/AppIcon.appiconset/AppIcon1024.png",
+      "tintColor": "8B1A1A",
+      "category": "games",
+      "versions": [
+        {
+          "version": "2.0.0",
+          "buildVersion": "34.1",
+          "date": "2026-10-23T05:08:20Z",
+          "localizedDescription": "**安卓来了。** v2.0 加入安卓版（社区移植）：和 iPhone、iPad、Mac 版用同一份宿主，图形在 Vulkan 上重新实现。Redmi K50 Ultra（骁龙 8+ 一代）上，营地、邪恶洞穴和奶牛关的战斗都是中位 60 帧。同一套引擎上的鸿蒙版也一起来了（社区移植，用 DevEco 构建）。这一版还带来游戏内西语、俄语和一批社区修复。感谢下面署名的贡献者，尤其是安卓版和鸿蒙版的作者。\n\n### 安卓\n\n- **移植本身**（#113，@yyan160）：安卓 App（`dm/android`），含 JNI 宿主、接在共用触屏状态机上的触屏覆盖层、Vulkan 呈现、AAudio 出声和起名用的系统输入框。共用宿主现在苹果、安卓两边都能编：信号现场、登记表段、信号量、线程名、扩展属性、进程启动时刻都有了安卓分支，程序改写器多了安卓目标（`DM_TARGET=android`，苹果的产物不变）。\n- **图形**（来自 @biglawine 的鸿蒙移植）：NVN→Vulkan 回放引擎（`dm/gfx/vulkan`），和 Metal 走同一套后端接口。\n- **性能**，每一项都在手机上量过：帧重叠与延后事件、描述符与管线缓存、管线预热清单、原生 BC 贴图、跨帧顶点 / 索引缓存等。Redmi K50 Ultra 的营地从 7.7 帧做到中位 60 帧。和 iOS 一样的 3D 画面加亮，做法来自 @vickwv 的另一条安卓移植（#112），那边的其他思路也都在这里逐项量过。\n- **用自己的游戏文件装**：发布的 APK 不含任何游戏内容（三张从游戏文件生成的表运行时从导入包读，做法同 iOS 壳）。在电脑上跑 `python3 dm/tools/d2rm_android.py <Update 目录> <输出目录>`，它改写游戏程序（安卓目标）、把全部着色器翻成 Vulkan 包、生成触屏覆盖层与数据表，写成一个 `android` 文件夹；拷到手机的 `Download/S2X/D2R Mobile/`（和 `data` 文件夹并排），下次打开 App 会带进度条导入。不用 adb，手机上也不用装构建工具。着色器导出这一步（`dm/gfx/tools/dmsh_vk.py`）做出的 6,927 个游戏着色器包，与移植作者测试用的那套逐字节相同。\n- **安卓改写器修正**（#113，@yyan160）：改写块不再把寄存器暂存在栈指针下方。安卓没有红区，系统信号落在游戏线程上时可能盖掉它们、悄悄改坏寄存器。苹果的产物逐字节不变。\n- **触屏控件与 iOS 一致**：和 iPhone 版同样的按钮底座、银灰技能剪影与摇杆，角上不再有地图键，面板上不再压着虚拟手柄圆钮；另有脚本把安卓的画法和 iOS 的画法逐像素比对。\n- **要求与现状**：ARM64，Android 12（API 31）及以上，Vulkan 1.1。实测机型 Redmi K50 Ultra（中位 60 帧）、OnePlus 13（能玩；有一种光效出现时偶尔闪过一瞬的小黑块），vivo X200 Ultra 上试玩过。还没做完的：空技能格菜单、加点浮层、商店拖动时跟着手指的物品图。现状与笔记见 [docs/ANDROID_COLLABORATION.zh-CN.md](https://github.com/jhaizhou-ops/d2r-mobile/blob/main/docs/ANDROID_COLLABORATION.zh-CN.md)。\n\n### 鸿蒙\n\n- **移植本身**（#114，@biglawine）：鸿蒙 NEXT（API 26）应用 `dm/harmony`（ArkTS 外壳、N-API 库），和安卓用同一份共用宿主与 Vulkan 引擎，两个手机版共用一套渲染器。导入一个装着你自己运行文件和游戏资源的文件夹即可。\n- **怎么装**：和 iOS 的壳一样，下面有一个不含任何游戏内容的预编译包 `D2RMobile-harmony-shell-unsigned.hap`。鸿蒙 NEXT 只装用你自己的开发者证书签名的应用，所以用自己的调试证书和 profile 重签后 `hdc install -r` 装上，不用自己编应用。再用自己的游戏文件跑 `python3 dm/tools/d2rm_android.py --target ohos <Update 目录> <输出目录>` 做运行包，在应用里导入。步骤和出错时怎么办见 [docs/HARMONYOS.zh-CN.md](https://github.com/jhaizhou-ops/d2r-mobile/blob/main/docs/HARMONYOS.zh-CN.md)。\n- **现状**：作者在 Mate 90 Pro Max（HarmonyOS 7.0.0.109，API 26）上走通「重签 → 安装 → 首次导入 → 进局 → 保存退出」，连续三次冷启动正常。之前的调试版实测罗格营地按住摇杆 59.7 帧（上屏间隔 p50 16.6 / p99 18.1 ms）。还没验：第二个开发者账号重签、Pura X、长时间游玩与发热。\n- **共用改动**，都用 `__OHOS__` 或开关隔开：改写器的 `DM_TARGET=ohos`、自适应出图档、栅栏等待改为完成即唤醒、OHAudio、HiTrace 打点、按 GPU 耗时的动态 3D 比例，以及输出与旧路径逐字节相同的 BC 软解快路径。\n- **另有来自 #113 的一笔**（@yyan160）：浮点 min / max / clamp 照 Maxwell 的规矩忽略 NaN，修好 OnePlus 13 画面上沿偶尔一帧的黑块。\n\n### 新增\n\n- **游戏内西语**（esES / esMX，受 @SwonDev 的 #87 启发）：设置「自定义」页可选语言，我们自己的界面文字、物品注释、触屏说法与名牌都有西语；首次启动跟系统语言。\n- **游戏内俄语**（#100，@XpycT）：我们所有界面文字都有俄语，语言行变成四项（中文 / English / Español / Русский），触屏说法与地图终点名牌有俄语；游戏文件里带俄语配音时用俄语配音。\n- **游戏内韩语**（#118，@soulsakura）：我们所有界面文字都有韩语，语言行加第五项（勾选框改到名字前面），触屏说法与地图终点名牌有韩语；游戏文件里带韩语配音时用韩语配音。设备是韩语时，第一次打开就是韩语。\n- **iPhone Duo**：全屏下展开、折叠手机时画面跟着窗口换尺寸，内屏铺满。下面的壳用 Xcode 27.1 出（内屏铺满需要它）；自己用 Xcode 构建也要用 27.1。已在 Mac 上按 iPhone Duo 模拟器给出的两种屏幕尺寸来回切验过（模拟器本身跑不了游戏的图形层）；拿到真机后会实测。\n- **Mac 打包**（#96，@SwonDev）：可选把自己的资源和图标做进 App；宿主链接的非系统动态库会拷进包里。\n- **Mac 过场动画**（#97，@SwonDev）…\n\nhttps://github.com/jhaizhou-ops/d2r-mobile/releases/tag/v2.0.0",
+          "downloadURL": "https://github.com/Ti800/d2r/releases/download/v2.0.0-build.34.1/D2RMobile-v2.0.0-build.34.1.ipa",
+          "size": 153182017,
+          "minOSVersion": "26.0"
+        },
+        {
+          "version": "1.0.18",
+          "buildVersion": "12.1",
+          "date": "2026-10-17T15:48:49Z",
+          "localizedDescription": "触控按键重做、iPhone 原生分辨率、支持 LiveContainer，以及一批社区修复。感谢下面署名的七位贡献者。\n\n### 新增\n\n- **触控按键重做**（#74，@BossaMelon）：按键换成黑灰内槽加金属边，右侧技能区改成弧形、整体往右下挪了一点；空技能槽的细边提亮，在亮的地面上也看得见。「Ⅰ / Ⅱ」换组键缺省放在传送门旁，可以在设置「自定义」页挪到技能区上方；改成松手才换组，手指滑出去就取消。iPad 上控件缩放限制在 1.0–1.15 倍。\n- **iPhone 按原生分辨率运行**（#73，@BossaMelon）：App 声明了启动屏，iPhone 不再以旧尺寸兼容模式运行。\n- **Mac 鼠标**（#65，@BossaMelon）：点世界在按下时就生效，不用等松手；按住移动每 30 Hz 一拍跟着光标走，去掉了起步 300 毫秒、转向 200 毫秒的延迟。\n- **LiveContainer**（#76，@kaskabayev）：`Guest.framework/Guest` 里预留了代码签名区，LiveContainer 在设备上就能给它签名，游戏能正常启动。\n\n### 修复\n\n- **小地图**（#64，@dormonbear）：界面重建、切换输入方式之后不再消失。\n- **任天堂手柄**（思路来自 @Kamisorara 的 #58，Issue #57）：Switch Pro 和 Joy-Con 上 A/B、X/Y 是反的。现在面键按键帽上印的字母对应；Xbox、PlayStation 手柄不变。\n- **CI 出的 Mac App**（#60）：不再整屏粉紫。着色器那一步用通配符拷反射文件，路径深时参数超长、一个都没拷上；现在按目录拷，并且缺反射文件的库会让构建直接失败。\n- **部分设备启动：** 设备拒绝预留 5120 MiB 地址空间时，自动降到 4864 MiB 再试，不再直接退出。\n- **画面与加载**（#68、#66，@SepheTT）：缓冲区和贴图互拷按游戏给的图像行距走；没解析到的弱导入保持空指针，游戏能正确判断可选函数不存在。\n- **Apple TV**（#56，@yinqingyan）：设置页的横线不再穿过下一行文字。\n\n### 其他\n\n- 改写器的 x18 扫描先按寄存器字段过滤（#55，@n3crosis），改写更快，产物逐字节相同。\n- 紫屏探针（缺省开）：重负载下整幅画面变品红时会记进诊断日志，便于定位这类反馈。\n- 首页设备表：4 GB 内存的设备能进游戏了，内存仍很紧（iPad mini 6 实测）。\n\nhttps://github.com/jhaizhou-ops/d2r-mobile/releases/tag/v1.0.18",
+          "downloadURL": "https://github.com/Ti800/d2r/releases/download/v1.0.18-build.12.1/D2RMobile-v1.0.18-build.12.1.ipa",
+          "size": 152307169,
+          "minOSVersion": "26.0"
+        },
+        {
+          "version": "1.0.17",
+          "buildVersion": "7.1",
+          "date": "2026-10-16T10:45:02Z",
+          "localizedDescription": "v1.0.16 的热修：个人仓库里的物品可能丢失，iCloud 共享仓库并回还进背包的物品可能重复。请更新。\n\nv1.0.16 因为这些问题已撤回。v1.0.17 包含 [v1.0.16](https://github.com/jhaizhou-ops/d2r-mobile/releases/tag/v1.0.16) 的全部内容，外加下面的修复。\n\n### 修复\n\n- **个人仓库第 2–5 页：** 翻页后，游戏要先确认即将写入的存档是在翻页之后生成的，才会记下这一页。如果翻走那一页里的某件物品，在存档别处还有同样的一份（例如下面 iCloud 并回问题复制出来的），这一步就一直确认不了。这时保存并退出或关掉游戏，那一页就丢了。现在只看本角色存档自己的事实来确认：翻页那一刻记下磁盘上是哪一份角色存档，之后写出的存档只要和它不同，就一定是翻页后生成的；还确认不了时，再把储藏箱格子里的物品（连同位置）逐件比对。别处有没有复制品、系统时间有没有改过，都不再有影响。每次存档还会连同「还没确认完的翻页」一起记下，下次进游戏按同样的方法落定。任何时刻杀掉游戏，都不会再丢页或重复。\n- **个人仓库：** 进游戏时，第 2–5 页里和存档别处数据相同的物品会被删掉。两件物品数据相同是可能的，现在一件都不删。\n- **iCloud 共享仓库并回（v1.0.16 新增）：** 还进背包的物品，只有在该角色的存档里看到才算还完。如果在下一次存盘前把它挪进共享仓库、个人仓库第 2–5 页或编年史仓库，之后每次进游戏都会再还一份。现在只要在任一存档文件里找到它，或还回之后游戏已经重新存过档，就算还完；进游戏时已经在存档里的物品直接跳过。\n\n在 v1.0.16 下已经丢失或重复的物品，这次更新不会改动。\n\nhttps://github.com/jhaizhou-ops/d2r-mobile/releases/tag/v1.0.17",
+          "downloadURL": "https://github.com/Ti800/d2r/releases/download/v1.0.17-build.7.1/D2RMobile-v1.0.17-build.7.1.ipa",
+          "size": 151951934,
+          "minOSVersion": "26.0"
+        },
+        {
+          "version": "1.0.16",
+          "buildVersion": "6.1",
+          "date": "2026-10-15T14:41:58Z",
+          "localizedDescription": "秘境更轻、更稳；iPhone 按音量键后不再定格；新增「3D 画质」设置，持续掉帧时游戏会自己降 3D 分辨率。\n\n### 秘境\n\n- 怪物密度和精英组数各下调约一半，为了保 60 帧；通关所需进度同步下调一半（250 → 125）。按层的生命 / 伤害倍率、掉落、90 层起的大乱斗规则都不变。\n- 修复：人在城里时秘境守护者会刷进城里、导致秘境没法继续。现在人在城里时下一波先等着，回到本场秘境再刷。感谢 **hubeiqiao** 的 PR #45（#44）。\n- 闯入首领只会刷在你走得到的地方，不会再刷进墙后另一条通道。\n\n### 修复\n\n- iPhone 上按音量键之后画面可能定住，看起来像黑屏或闪退。现在显示刷新停了 0.5 秒以上，就改由游戏自己出图，画面不再定住，之后自动换回系统刷新。\n- 腰带一键补药进行中切换手柄 / 触屏布局（Mac 上换键帽、切语言）会闪退，已修复。\n- 拿着赫拉迪姆方块往储藏箱拖之后，面板一开就被关，已修复。\n- 和 NPC 对话时底栏消失、十字位显示中文「功能」（英文界面也是），已修复：对话菜单 / 说话框开着时，底栏照常显示生命 / 法力数值和经验条。\n- 主技能置空后，点右下主攻击大钮上的「＋」能弹出选技能了。\n- 提示框停靠：Mac 上从未生效、iOS 保存并退出再进局后失效，均已修复；物品说明框开着时，提示框会让开。\n- 图形：同一批录制的显存拷贝可能不按顺序执行，已修复。\n\n### 声音\n\n- 针对 iPhone 15 Pro Max 移动时断音的反馈，音频缓冲释放线程改为交互级优先级。在我们的 iPhone 17 Pro Max 上推摇杆走动 240 秒、新旧设置交替各 7 段，叫醒延迟超过 2 毫秒的次数从 16 次降到 0 次。感谢 **dormonbear** 的 PR #52。我们的测试机没有复现断音，如果你还遇到，请在 GitHub 上告诉我们。\n\n### 画质与帧率\n\n- 新设置 **自定义 → 3D 画质**：\n  - **流畅优先**（缺省）：持续掉帧时自动降低 3D 渲染比例，稳定后再升回来；\n  - **画质优先**：不自动降。\n- Mac：帧率按窗口所在屏幕的刷新率取档，144 Hz 屏为 72 帧，60 / 120 Hz 屏仍为 60 帧。\n- 性能：\n  - 重场景每帧的翻译工作量减少约 15%（iPhone 17 Pro Max，秘境 75 层拉怪，每帧翻译周期 16.96M → 14.40M，与 CPU 频率无关）。\n  - 手机发热、系统限制功耗时，「流畅优先」会自动降低 3D 渲染比例：同一台机器在同样的功耗限制下，热机后的掉帧率从 23% 降到 10%。\n\n### Mac\n\n- 选资源文件夹两种摆法都认：选资源根（里面有 `data` 文件夹），或者选直接装着各个 `.data` 和 `build_manifest.psv` 的那一层。\n- 选错文件夹时，提示框里的中文文件夹名不再显示为空。\n- 窗口被别的窗口整个盖住时不再出图，露出来照常；游戏照常运行。\n\n### iCloud 共享仓库\n\n- 共享仓库在两台设备之间分叉时，并回更完整：本机那份比云端多出的物品与金币，会在你开着储藏箱时还进背包（放不下会提示，下次开箱接着放）；编年史仓库里本机多出的件也一并还回；编年史条目取两边的并集。\n\n### 社区贡献\n\n- **hubeiqiao**：PR #45（秘境守护者回城修复）、PR #51（小地图 / 换图 / 物件交互诊断日志，用于排查 #47 / #49）。\n- **dormonbear**：PR #52（音频线程优先级）。\n- **yinqingyan**：Apple TV 4K（第三代 A15）社区移植，开发者预览：已在作者实机上到达职业选择画面，已并入源码，可自行构建（本版不提供 Apple TV 安装包）。\n\nhttps://github.com/jhaizhou-ops/d2r-mobile/releases/tag/v1.0.16",
+          "downloadURL": "https://github.com/Ti800/d2r/releases/download/v1.0.16-build.6.1/D2RMobile-v1.0.16-build.6.1.ipa",
+          "size": 148611378,
+          "minOSVersion": "26.0"
+        },
+        {
+          "version": "1.0.16",
+          "buildVersion": "5.1",
+          "date": "2026-10-15T14:09:34Z",
+          "localizedDescription": "秘境更轻、更稳；iPhone 按音量键后不再定格；新增「3D 画质」设置，持续掉帧时游戏会自己降 3D 分辨率。\n\n### 秘境\n\n- 怪物密度和精英组数各下调约一半，为了保 60 帧；通关所需进度同步下调一半（250 → 125）。按层的生命 / 伤害倍率、掉落、90 层起的大乱斗规则都不变。\n- 修复：人在城里时秘境守护者会刷进城里、导致秘境没法继续。现在人在城里时下一波先等着，回到本场秘境再刷。感谢 **hubeiqiao** 的 PR #45（#44）。\n- 闯入首领只会刷在你走得到的地方，不会再刷进墙后另一条通道。\n\n### 修复\n\n- iPhone 上按音量键之后画面可能定住，看起来像黑屏或闪退。现在显示刷新停了 0.5 秒以上，就改由游戏自己出图，画面不再定住，之后自动换回系统刷新。\n- 腰带一键补药进行中切换手柄 / 触屏布局（Mac 上换键帽、切语言）会闪退，已修复。\n- 拿着赫拉迪姆方块往储藏箱拖之后，面板一开就被关，已修复。\n- 和 NPC 对话时底栏消失、十字位显示中文「功能」（英文界面也是），已修复：对话菜单 / 说话框开着时，底栏照常显示生命 / 法力数值和经验条。\n- 主技能置空后，点右下主攻击大钮上的「＋」能弹出选技能了。\n- 提示框停靠：Mac 上从未生效、iOS 保存并退出再进局后失效，均已修复；物品说明框开着时，提示框会让开。\n- 图形：同一批录制的显存拷贝可能不按顺序执行，已修复。\n\n### 声音\n\n- 针对 iPhone 15 Pro Max 移动时断音的反馈，音频缓冲释放线程改为交互级优先级。在我们的 iPhone 17 Pro Max 上推摇杆走动 240 秒、新旧设置交替各 7 段，叫醒延迟超过 2 毫秒的次数从 16 次降到 0 次。感谢 **dormonbear** 的 PR #52。我们的测试机没有复现断音，如果你还遇到，请在 GitHub 上告诉我们。\n\n### 画质与帧率\n\n- 新设置 **自定义 → 3D 画质**：\n  - **流畅优先**（缺省）：持续掉帧时自动降低 3D 渲染比例，稳定后再升回来；\n  - **画质优先**：不自动降。\n- Mac：帧率按窗口所在屏幕的刷新率取档，144 Hz 屏为 72 帧，60 / 120 Hz 屏仍为 60 帧。\n- 性能：\n  - 重场景每帧的翻译工作量减少约 15%（iPhone 17 Pro Max，秘境 75 层拉怪，每帧翻译周期 16.96M → 14.40M，与 CPU 频率无关）。\n  - 手机发热、系统限制功耗时，「流畅优先」会自动降低 3D 渲染比例：同一台机器在同样的功耗限制下，热机后的掉帧率从 23% 降到 10%。\n\n### Mac\n\n- 选资源文件夹两种摆法都认：选资源根（里面有 `data` 文件夹），或者选直接装着各个 `.data` 和 `build_manifest.psv` 的那一层。\n- 选错文件夹时，提示框里的中文文件夹名不再显示为空。\n- 窗口被别的窗口整个盖住时不再出图，露出来照常；游戏照常运行。\n\n### iCloud 共享仓库\n\n- 共享仓库在两台设备之间分叉时，并回更完整：本机那份比云端多出的物品与金币，会在你开着储藏箱时还进背包（放不下会提示，下次开箱接着放）；编年史仓库里本机多出的件也一并还回；编年史条目取两边的并集。\n\n### 社区贡献\n\n- **hubeiqiao**：PR #45（秘境守护者回城修复）、PR #51（小地图 / 换图 / 物件交互诊断日志，用于排查 #47 / #49）。\n- **dormonbear**：PR #52（音频线程优先级）。\n- **yinqingyan**：Apple TV 4K（第三代 A15）社区移植，开发者预览：已在作者实机上到达职业选择画面，已并入源码，可自行构建（本版不提供 Apple TV 安装包）。\n\nhttps://github.com/jhaizhou-ops/d2r-mobile/releases/tag/v1.0.16",
+          "downloadURL": "https://github.com/Ti800/d2r/releases/download/v1.0.16-build.5.1/D2RMobile-v1.0.16-build.5.1.ipa",
+          "size": 151845157,
+          "minOSVersion": "26.0"
+        },
+        {
+          "version": "1.0.15",
+          "buildVersion": "4.1",
+          "date": "2026-10-15T11:32:43Z",
+          "localizedDescription": "### 装错包、设备不支持时不再闪退\n\n- **直接装了壳本身**（或用不同版本拼成的包），原先拷完资源档案启动就闪退，日志里是 `FATAL open …/main.fixups.tsv`（#40）。现在 App 启动时照壳自带的清单核对安装包：缺东西、或者是拼起来的，就弹框「这个安装包还不能玩」，写明缺什么、该回到第一步。\n- **图形芯片不支持 Metal 3 的设备**（A13 及更早，包括 2020 年的 iPad Pro A12Z）启动时直接提示「这台设备玩不了」，不再走到后面才闪退（#41）。见下面的设备说明。\n- **重签过的包在还没放资源时打开**（用自己的 Apple ID 或自签工具签的），不再在苹果的后台资源服务里闪退，直接停在「把资源拷进来」的说明页。\n- 资源校验改成在游戏启动前只做一次；中途资源被挪走，会回到资源页，不闪退。\n\n### 重场景更流畅\n\n把游戏的图形命令翻译成 Metal 的工作挪到了单独的线程上，和游戏下一帧的逻辑同时进行，不再互相等。重场景（怪多、特效多）掉帧比上一版少约三分之一：在我们的测试机 iPhone 17 Pro Max 上、同一个大秘境场景里，每 300 帧掉帧的中位数从 85 降到 56。重场景仍会明显掉帧，还在继续优化；普通场景不掉帧（每 300 帧中位 0）。\n\n### 其他修正\n\n- **暂停菜单开着切出去也能存上盘。** 原先暂停时切到后台存不了盘（暂停时游戏不往下走），上次自动存盘以来的进度，App 在后台被系统收掉就会丢。现在会让游戏短暂走一下、存完盘再恢复暂停。Mac 版退出走同一条路。\n- **宽屏 iPhone（15 Pro / 16 Pro / 17 Pro Max 等 2.17:1 屏幕）：** 只开物品栏时，物品说明框停在面板两侧的空板上，不再贴着屏幕边。\n- **编年史「查看奖励」页：** 点奖励卡片之间的空处，不再穿到下面的列表（原先会在奖励页上画出金色焦点框）。\n\n### 设备\n\n首页的设备表写明了最低要求：**A14 / M1 及以后的芯片**。本项目的图形层要用 Metal 3，苹果从 A14 / M1 起才支持（[Metal 支持的设备](https://support.apple.com/102894)、[Metal 功能表](https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf)）。感谢 #41 的玩家，这条结论是从他反汇编级的报告查出来的。\n\nhttps://github.com/jhaizhou-ops/d2r-mobile/releases/tag/v1.0.15",
+          "downloadURL": "https://github.com/Ti800/d2r/releases/download/v1.0.15-build.4.1/D2RMobile-v1.0.15-build.4.1.ipa",
+          "size": 151807217,
+          "minOSVersion": "26.0"
+        }
+      ],
+      "version": "2.0.0",
+      "versionDate": "2026-10-23T05:08:20Z",
+      "versionDescription": "**安卓来了。** v2.0 加入安卓版（社区移植）：和 iPhone、iPad、Mac 版用同一份宿主，图形在 Vulkan 上重新实现。Redmi K50 Ultra（骁龙 8+ 一代）上，营地、邪恶洞穴和奶牛关的战斗都是中位 60 帧。同一套引擎上的鸿蒙版也一起来了（社区移植，用 DevEco 构建）。这一版还带来游戏内西语、俄语和一批社区修复。感谢下面署名的贡献者，尤其是安卓版和鸿蒙版的作者。\n\n### 安卓\n\n- **移植本身**（#113，@yyan160）：安卓 App（`dm/android`），含 JNI 宿主、接在共用触屏状态机上的触屏覆盖层、Vulkan 呈现、AAudio 出声和起名用的系统输入框。共用宿主现在苹果、安卓两边都能编：信号现场、登记表段、信号量、线程名、扩展属性、进程启动时刻都有了安卓分支，程序改写器多了安卓目标（`DM_TARGET=android`，苹果的产物不变）。\n- **图形**（来自 @biglawine 的鸿蒙移植）：NVN→Vulkan 回放引擎（`dm/gfx/vulkan`），和 Metal 走同一套后端接口。\n- **性能**，每一项都在手机上量过：帧重叠与延后事件、描述符与管线缓存、管线预热清单、原生 BC 贴图、跨帧顶点 / 索引缓存等。Redmi K50 Ultra 的营地从 7.7 帧做到中位 60 帧。和 iOS 一样的 3D 画面加亮，做法来自 @vickwv 的另一条安卓移植（#112），那边的其他思路也都在这里逐项量过。\n- **用自己的游戏文件装**：发布的 APK 不含任何游戏内容（三张从游戏文件生成的表运行时从导入包读，做法同 iOS 壳）。在电脑上跑 `python3 dm/tools/d2rm_android.py <Update 目录> <输出目录>`，它改写游戏程序（安卓目标）、把全部着色器翻成 Vulkan 包、生成触屏覆盖层与数据表，写成一个 `android` 文件夹；拷到手机的 `Download/S2X/D2R Mobile/`（和 `data` 文件夹并排），下次打开 App 会带进度条导入。不用 adb，手机上也不用装构建工具。着色器导出这一步（`dm/gfx/tools/dmsh_vk.py`）做出的 6,927 个游戏着色器包，与移植作者测试用的那套逐字节相同。\n- **安卓改写器修正**（#113，@yyan160）：改写块不再把寄存器暂存在栈指针下方。安卓没有红区，系统信号落在游戏线程上时可能盖掉它们、悄悄改坏寄存器。苹果的产物逐字节不变。\n- **触屏控件与 iOS 一致**：和 iPhone 版同样的按钮底座、银灰技能剪影与摇杆，角上不再有地图键，面板上不再压着虚拟手柄圆钮；另有脚本把安卓的画法和 iOS 的画法逐像素比对。\n- **要求与现状**：ARM64，Android 12（API 31）及以上，Vulkan 1.1。实测机型 Redmi K50 Ultra（中位 60 帧）、OnePlus 13（能玩；有一种光效出现时偶尔闪过一瞬的小黑块），vivo X200 Ultra 上试玩过。还没做完的：空技能格菜单、加点浮层、商店拖动时跟着手指的物品图。现状与笔记见 [docs/ANDROID_COLLABORATION.zh-CN.md](https://github.com/jhaizhou-ops/d2r-mobile/blob/main/docs/ANDROID_COLLABORATION.zh-CN.md)。\n\n### 鸿蒙\n\n- **移植本身**（#114，@biglawine）：鸿蒙 NEXT（API 26）应用 `dm/harmony`（ArkTS 外壳、N-API 库），和安卓用同一份共用宿主与 Vulkan 引擎，两个手机版共用一套渲染器。导入一个装着你自己运行文件和游戏资源的文件夹即可。\n- **怎么装**：和 iOS 的壳一样，下面有一个不含任何游戏内容的预编译包 `D2RMobile-harmony-shell-unsigned.hap`。鸿蒙 NEXT 只装用你自己的开发者证书签名的应用，所以用自己的调试证书和 profile 重签后 `hdc install -r` 装上，不用自己编应用。再用自己的游戏文件跑 `python3 dm/tools/d2rm_android.py --target ohos <Update 目录> <输出目录>` 做运行包，在应用里导入。步骤和出错时怎么办见 [docs/HARMONYOS.zh-CN.md](https://github.com/jhaizhou-ops/d2r-mobile/blob/main/docs/HARMONYOS.zh-CN.md)。\n- **现状**：作者在 Mate 90 Pro Max（HarmonyOS 7.0.0.109，API 26）上走通「重签 → 安装 → 首次导入 → 进局 → 保存退出」，连续三次冷启动正常。之前的调试版实测罗格营地按住摇杆 59.7 帧（上屏间隔 p50 16.6 / p99 18.1 ms）。还没验：第二个开发者账号重签、Pura X、长时间游玩与发热。\n- **共用改动**，都用 `__OHOS__` 或开关隔开：改写器的 `DM_TARGET=ohos`、自适应出图档、栅栏等待改为完成即唤醒、OHAudio、HiTrace 打点、按 GPU 耗时的动态 3D 比例，以及输出与旧路径逐字节相同的 BC 软解快路径。\n- **另有来自 #113 的一笔**（@yyan160）：浮点 min / max / clamp 照 Maxwell 的规矩忽略 NaN，修好 OnePlus 13 画面上沿偶尔一帧的黑块。\n\n### 新增\n\n- **游戏内西语**（esES / esMX，受 @SwonDev 的 #87 启发）：设置「自定义」页可选语言，我们自己的界面文字、物品注释、触屏说法与名牌都有西语；首次启动跟系统语言。\n- **游戏内俄语**（#100，@XpycT）：我们所有界面文字都有俄语，语言行变成四项（中文 / English / Español / Русский），触屏说法与地图终点名牌有俄语；游戏文件里带俄语配音时用俄语配音。\n- **游戏内韩语**（#118，@soulsakura）：我们所有界面文字都有韩语，语言行加第五项（勾选框改到名字前面），触屏说法与地图终点名牌有韩语；游戏文件里带韩语配音时用韩语配音。设备是韩语时，第一次打开就是韩语。\n- **iPhone Duo**：全屏下展开、折叠手机时画面跟着窗口换尺寸，内屏铺满。下面的壳用 Xcode 27.1 出（内屏铺满需要它）；自己用 Xcode 构建也要用 27.1。已在 Mac 上按 iPhone Duo 模拟器给出的两种屏幕尺寸来回切验过（模拟器本身跑不了游戏的图形层）；拿到真机后会实测。\n- **Mac 打包**（#96，@SwonDev）：可选把自己的资源和图标做进 App；宿主链接的非系统动态库会拷进包里。\n- **Mac 过场动画**（#97，@SwonDev）…\n\nhttps://github.com/jhaizhou-ops/d2r-mobile/releases/tag/v2.0.0",
+      "downloadURL": "https://github.com/Ti800/d2r/releases/download/v2.0.0-build.34.1/D2RMobile-v2.0.0-build.34.1.ipa",
+      "size": 153182017,
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
+    }
+  ],
+  "news": []
+}
